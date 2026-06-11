@@ -1,22 +1,27 @@
-import blob_azure_demo as func
-import json
+# REST API using Flask (Proficient: data does not need to be persistent)
+# Run locally with: python app.py
+# Then visit: http://localhost:5000/api/wind or http://localhost:5000/api/wind?station=Vlissingen
+
+from flask import Flask, jsonify, request
 import random
 
-app = func.FunctionApp()
+app = Flask(__name__)
 
 WIND_DATA = [
     {"station": "Vlissingen", "wind_dir": 220},
     {"station": "Leeuwarden", "wind_dir": 270},
-    {"station": "Lelystad", "wind_dir": 250},
+    {"station": "Lelystad",   "wind_dir": 250},
 ]
 
-@app.route(route="wind", methods=["GET"])
-def get_wind(req: func.HttpRequest) -> func.HttpResponse:
+@app.route("/")
+def home():
+    return "Wind API is running. Try /api/wind or /api/wind?station=Vlissingen"
 
-    station = req.params.get("station")
+@app.route("/api/wind")
+def get_wind():
+    station = request.args.get("station")
 
     data = []
-
     for item in WIND_DATA:
         item_copy = item.copy()
         item_copy["wind_speed"] = round(random.uniform(0, 15), 1)
@@ -25,8 +30,7 @@ def get_wind(req: func.HttpRequest) -> func.HttpResponse:
     if station:
         data = [d for d in data if d["station"] == station]
 
-    return func.HttpResponse(
-        json.dumps(data),
-        mimetype="application/json",
-        status_code=200
-    )
+    return jsonify(data)
+
+if __name__ == "__main__":
+    app.run(debug=True)

@@ -1,44 +1,3 @@
-from azure.storage.blob import BlobServiceClient
-import uuid
-import os
-import azure.functions as func
-import logging
-import json
-
-# Only one FunctionApp instance — having two would break everything
-app = func.FunctionApp()
-
-CONTAINER = "wind-data"
-
-WIND_DATA = [
-    {"station": "Vlissingen", "wind_dir": 220},
-    {"station": "Leeuwarden", "wind_dir": 270},
-    {"station": "Lelystad",   "wind_dir": 250},
-]
-
-import random
-
-@app.route(route="wind", methods=["GET"])
-def get_wind(req: func.HttpRequest) -> func.HttpResponse:
-
-    station = req.params.get("station")
-
-    data = []
-    for item in WIND_DATA:
-        item_copy = item.copy()
-        # Random wind speed simulates a live sensor feed
-        # Data does not need to be persistent (Proficient criteria)
-        item_copy["wind_speed"] = round(random.uniform(0, 15), 1)
-        data.append(item_copy)
-
-    if station:
-        data = [d for d in data if d["station"] == station]
-
-    return func.HttpResponse(
-        json.dumps(data),
-        mimetype="application/json",
-        status_code=200
-    )
 import azure.functions as func
 import json
 import random
@@ -51,7 +10,6 @@ WIND_DATA = [
     {"station": "Lelystad", "wind_speed": 4.9, "wind_dir": 250},
 ]
 
-# GET
 @app.route(route="wind", methods=["GET"])
 def get_wind(req: func.HttpRequest) -> func.HttpResponse:
 
@@ -74,7 +32,6 @@ def get_wind(req: func.HttpRequest) -> func.HttpResponse:
     )
 
 
-# POST
 @app.route(route="wind", methods=["POST"])
 def add_wind(req: func.HttpRequest) -> func.HttpResponse:
 
@@ -91,6 +48,7 @@ def add_wind(req: func.HttpRequest) -> func.HttpResponse:
         mimetype="application/json",
         status_code=201
     )
+
 
 @app.route(route="wind", methods=["PUT"])
 def update_wind(req: func.HttpRequest) -> func.HttpResponse:
@@ -131,22 +89,3 @@ def delete_wind(req: func.HttpRequest) -> func.HttpResponse:
         mimetype="application/json",
         status_code=200
     )
-@app.blob_trigger(
-    arg_name="myblob",
-    path="wind-data/{name}",
-    connection="AzureWebJobsStorage"
-)
-def process_wind_blob(myblob: func.InputStream):
-
-    logging.info(f"Blob trigger fired: {myblob.name} ({myblob.length} bytes)")
-
-    content = myblob.read().decode("utf-8")
-
-    try:
-        data = json.loads(content)
-        logging.info(
-            f"Station: {data.get('station')}, "
-            f"Wind speed: {data.get('wind_speed')} m/s"
-        )
-    except json.JSONDecodeError:
-        logging.warning("File was not valid JSON")
